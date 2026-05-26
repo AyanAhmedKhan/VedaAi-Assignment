@@ -29,6 +29,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           school: doc.school,
           instructions: doc.instructions,
           questionTypes: doc.questionTypes,
+          title: doc.title,
+          dueDate: doc.dueDate,
+          fileName: doc.fileName,
         },
         identity
       );

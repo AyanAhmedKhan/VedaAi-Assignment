@@ -30,9 +30,15 @@ export async function POST(req: Request) {
 
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  // Derive a meaningful default title from the spec when the form omits one.
+  const autoTitle =
+    parsed.data.title?.trim() ||
+    `${parsed.data.subject} — ${parsed.data.grade}${
+      parsed.data.school ? ` (${parsed.data.school})` : ""
+    }`;
   const doc: Assignment = {
     _id: id,
-    title: parsed.data.title || "Untitled Assignment",
+    title: autoTitle,
     subject: parsed.data.subject,
     grade: parsed.data.grade,
     school: parsed.data.school ?? "",
@@ -86,6 +92,9 @@ async function runGeneration(id: string, identity: string) {
       school: doc.school,
       instructions: doc.instructions,
       questionTypes: doc.questionTypes,
+      title: doc.title,
+      dueDate: doc.dueDate,
+      fileName: doc.fileName,
     },
     identity
   );

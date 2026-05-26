@@ -8,22 +8,41 @@ import type { GeneratedResult, QuestionTypeInput } from "@/types/assignment";
 import { pickQuestionsForType } from "./mockBank";
 import { getRateStatus, recordRateHit, type RateStatus } from "./rateLimit";
 
-const SYSTEM_PROMPT = `You are an experienced exam paper setter for K-12 classrooms.
+const SYSTEM_PROMPT = `You are an experienced exam paper setter for K-12 schools. Your output is consumed by software, so you MUST follow the schema and counts exactly.
 
-You will be given an assignment specification and must produce a structured question paper.
+OUTPUT FORMAT
+- Return ONLY a single JSON object that conforms to the provided responseSchema. No prose, no markdown fences, no comments.
 
-Strict rules:
-- Output ONLY valid JSON conforming to the provided schema. No prose, no markdown fences.
-- Group questions into sections (A, B, C, ...) — one section per requested question type unless small types merge cleanly.
-- Each section gets a clear instruction line (e.g. "Attempt all questions. Each carries 2 marks.").
-- Questions must be original, age-appropriate, pedagogically sound, and specific to the subject/grade.
-- Spread difficulty across Easy / Moderate / Hard within each section.
-- Marks per question must match the requested marks for that question type.
-- Set timeMinutes proportional to total marks (roughly 1.5x marks, clamped 30-180).
-- totalMarks must equal the sum of marks across all questions.
-- Use real, specific question text. Do not write placeholders.
-- Use the typeId values exactly as provided.
-- For EVERY question, include a concise answerKey (1–3 sentences). For MCQs, write the correct option letter and a short reason; for numericals, show the final answer with units; for short/long answers, write a model answer in 2–4 lines.`;
+STRUCTURE
+- Produce one section per requested question type, in the order the teacher provided them.
+- Section titles are "Section A", "Section B", "Section C", … in order.
+- Each section gets a one-line instruction (e.g. "Attempt all questions. Each carries 2 marks.").
+- Inside each section, every question MUST use the typeId of that section's question type, exactly as given.
+
+COUNTS — these are non-negotiable
+- For every question type, produce EXACTLY the requested number of questions with EXACTLY the requested marks per question.
+- totalMarks MUST equal the sum of marks across all questions you generate.
+- timeMinutes ≈ 1.5 × totalMarks, clamped to [30, 180].
+
+QUALITY
+- Questions must be original, age-appropriate for the stated grade, pedagogically sound, and specific to the stated subject.
+- Spread Easy / Moderate / Hard difficulty across each section (roughly 40% / 40% / 20%).
+- Do NOT write placeholders like "Question 1" — write the actual question text.
+- For MCQs, write the question, then list four options inline as: "a) … b) … c) … d) …".
+- For numerical problems, include the specific values needed to solve them.
+- Respect any "Additional instructions from teacher" — they override defaults (e.g. exam duration, syllabus chapter, language).
+
+ANSWER KEY (required for every question)
+- MCQ → state the correct option letter and one-sentence reason.
+- True/False → "True" or "False" plus a one-sentence justification.
+- Fill-in-the-blanks → the exact missing word(s).
+- Numerical → show the final numeric answer with units (and one line of working if helpful).
+- Short / Long / Essay / Diagram / Case Study → 2-4 line model answer covering the key points expected.
+
+OUTPUT FIELDS
+- school: echo the teacher's school name. If blank, use "School".
+- subject: echo verbatim.
+- grade: echo verbatim.`;
 
 const RESPONSE_SCHEMA: Schema = {
   type: SchemaType.OBJECT,
@@ -72,21 +91,52 @@ type Input = {
   school: string;
   instructions: string;
   questionTypes: QuestionTypeInput[];
+  title?: string;
+  dueDate?: string;
+  fileName?: string;
 };
 
 function buildUserPrompt(input: Input): string {
-  const lines = [
-    `Subject: ${input.subject}`,
-    `Grade / Class: ${input.grade}`,
-    input.school ? `School: ${input.school}` : "",
-    `Question type breakdown:`,
-    ...input.questionTypes.map(
-      (t, i) =>
-        `  ${String.fromCharCode(65 + i)}. ${t.label} — ${t.count} questions × ${t.marks} marks (typeId: "${t.id}")`
-    ),
-    input.instructions ? `Additional instructions from teacher: ${input.instructions}` : "",
-  ].filter(Boolean);
-  return lines.join("\n");
+  const totalQuestions = input.questionTypes.reduce((s, t) => s + t.count, 0);
+  const totalMarks = input.questionTypes.reduce((s, t) => s + t.count * t.marks, 0);
+  const timeMinutes = Math.min(180, Math.max(30, Math.round(totalMarks * 1.5)));
+
+  const lines: string[] = [
+    "# Assignment specification",
+    "",
+    `- Subject: ${input.subject}`,
+    `- Grade / Class: ${input.grade}`,
+    input.school ? `- School: ${input.school}` : "",
+    input.title && input.title !== "Untitled Assignment" ? `- Paper title: ${input.title}` : "",
+    input.dueDate ? `- Due date (context, not for printing): ${input.dueDate}` : "",
+    input.fileName
+      ? `- Reference material the teacher uploaded (filename only, content not provided): ${input.fileName}. Use the filename as a hint about the chapter/topic if relevant.`
+      : "",
+    "",
+    "# Sections to produce (one per item, in this order)",
+    ...input.questionTypes.map((t, i) => {
+      const sec = String.fromCharCode(65 + i);
+      return `${sec}. typeId="${t.id}" · label="${t.label}" · COUNT=${t.count} · MARKS_EACH=${t.marks} · SECTION_TOTAL=${t.count * t.marks}`;
+    }),
+    "",
+    "# Expected totals (must match exactly)",
+    `- Total questions: ${totalQuestions}`,
+    `- Total marks: ${totalMarks}`,
+    `- timeMinutes target: ${timeMinutes}`,
+    "",
+  ];
+
+  if (input.instructions && input.instructions.trim()) {
+    lines.push("# Additional instructions from teacher (highest priority — override defaults)");
+    lines.push(input.instructions.trim());
+    lines.push("");
+  }
+
+  lines.push(
+    "Return the JSON now. Make sure each section has exactly the requested number of questions with the requested marks. Use the typeId values verbatim."
+  );
+
+  return lines.filter(Boolean).join("\n");
 }
 
 export type GenerationOutcome = {
@@ -150,7 +200,11 @@ export async function generateQuestionPaper(
       },
     });
 
-    const result = await model.generateContent(buildUserPrompt(input));
+    const userPrompt = buildUserPrompt(input);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[llm] === user prompt ===\n" + userPrompt + "\n===================");
+    }
+    const result = await model.generateContent(userPrompt);
     const text = result.response.text();
     const parsed = JSON.parse(text) as GeneratedResult;
     await recordRateHit(identity);
@@ -191,6 +245,8 @@ type OneInput = {
   sectionInstruction: string;
   question: GeneratedResult["sections"][number]["questions"][number];
   avoidTexts: string[];
+  instructions?: string;
+  school?: string;
 };
 
 export async function regenerateQuestion(
@@ -221,21 +277,42 @@ export async function regenerateQuestion(
 
   const sys = `${SYSTEM_PROMPT}
 
-You are rewriting ONE question. Keep:
-- The same difficulty: ${input.question.difficulty}
-- The same marks: ${input.question.marks}
-- The same typeId: ${input.question.typeId}
-Make it materially different from the AVOID list, but still fitting the section.`;
+# Single-question regeneration mode
+You are rewriting ONE question for an existing paper. You MUST keep:
+- difficulty exactly = "${input.question.difficulty}"
+- marks exactly = ${input.question.marks}
+- typeId exactly = "${input.question.typeId}"
 
-  const user = [
+Write something materially different from the AVOID list below, but still fitting the section and the teacher's original instructions. Output exactly one JSON object matching the responseSchema (text, difficulty, marks, typeId, answerKey).`;
+
+  const userLines: string[] = [
     `Subject: ${input.subject}`,
     `Grade / Class: ${input.grade}`,
+    input.school ? `School: ${input.school}` : "",
     `Section: ${input.sectionTitle}`,
     `Section instruction: ${input.sectionInstruction}`,
+    `Question type label: ${input.question.typeId}`,
     "",
-    "Avoid producing anything similar to these existing questions:",
-    ...input.avoidTexts.map((t) => `- ${t}`),
-  ].join("\n");
+  ];
+
+  if (input.instructions && input.instructions.trim()) {
+    userLines.push("Teacher's original instructions (preserve their intent):");
+    userLines.push(input.instructions.trim());
+    userLines.push("");
+  }
+
+  userLines.push("Existing question being replaced:");
+  userLines.push(`- ${input.question.text}`);
+  userLines.push("");
+  userLines.push("Avoid producing anything similar to these existing questions in the same section:");
+  for (const t of input.avoidTexts) {
+    userLines.push(`- ${t}`);
+  }
+
+  const user = userLines.join("\n");
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[llm] === regen-one prompt ===\n" + user + "\n========================");
+  }
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);

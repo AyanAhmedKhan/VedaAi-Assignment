@@ -76,6 +76,8 @@ export async function POST(req: Request, { params }: { params: Promise<Params> }
     {
       subject: doc.subject,
       grade: doc.grade,
+      school: doc.school,
+      instructions: doc.instructions,
       sectionTitle: sec.title,
       sectionInstruction: sec.instruction,
       question: sec.questions[qIdx],
