@@ -135,6 +135,22 @@ export function TopBar({
         </kbd>
       </button>
 
+      {/* Product tour */}
+      <button
+        type="button"
+        aria-label="Take the product tour"
+        title="Take the product tour"
+        onClick={() => {
+          document.dispatchEvent(new CustomEvent("vedaai:tour"));
+        }}
+        className="hidden md:flex h-9 px-3 rounded-full items-center gap-1.5 font-bricolage text-xs font-semibold bg-brand-orange/10 hover:bg-brand-orange/20 text-brand-orange border border-brand-orange/30 transition"
+      >
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="currentColor">
+          <path d="M4 2.5v9l7-4.5z" />
+        </svg>
+        Tour
+      </button>
+
       {/* Shortcuts help */}
       <button
         type="button"

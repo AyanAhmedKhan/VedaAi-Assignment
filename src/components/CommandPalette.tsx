@@ -118,10 +118,19 @@ export function CommandPalette() {
         hint: "Press ? anywhere",
         keywords: "help shortcuts keyboard cheatsheet",
         run: () => {
-          // re-dispatch ? so the ShortcutsOverlay listener picks it up
           document.dispatchEvent(
             new KeyboardEvent("keydown", { key: "?", bubbles: true })
           );
+        },
+      },
+      {
+        id: "tour",
+        group: "Actions",
+        label: "Start product tour",
+        hint: "Walk through every feature",
+        keywords: "tour onboarding intro tutorial walkthrough features",
+        run: () => {
+          document.dispatchEvent(new CustomEvent("vedaai:tour"));
         },
       },
     ];
