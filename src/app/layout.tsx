@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -23,7 +23,6 @@ export const metadata: Metadata = {
   description:
     "Generate exam-ready question papers in seconds with AI. Sections, difficulty, marks, downloadable PDF — built for teachers.",
   applicationName: "VedaAI",
-  themeColor: "#FF5623",
   icons: {
     icon: "/icon.svg",
     apple: "/apple-icon.svg",
@@ -33,6 +32,12 @@ export const metadata: Metadata = {
     description: "Generate exam-ready question papers in seconds.",
     type: "website",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#FF5623",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
