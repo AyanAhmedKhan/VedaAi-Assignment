@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { store, notifications } from "@/server/store";
 import { CreateAssignmentInput } from "@/server/validate";
 import { generateQuestionPaper } from "@/server/llm";
@@ -6,6 +6,8 @@ import { identityFromRequest } from "@/server/rateLimit";
 import type { Assignment } from "@/types/assignment";
 
 export const runtime = "nodejs";
+// Allow up to 60 s for the background Gemini call to complete on Vercel.
+export const maxDuration = 60;
 
 export async function GET() {
   return NextResponse.json(await store.list());
@@ -54,13 +56,23 @@ export async function POST(req: Request) {
     assignmentId: id,
   });
 
-  // Run generation synchronously so the result is persisted before the
-  // serverless function exits. On Vercel, fire-and-forget Promises after
-  // res.json() are killed when the function returns — that's why polls
-  // sometimes returned 404 with status="pending" forever.
-  await runGeneration(id, identity);
+  // Schedule generation to run after the response is sent. On Vercel,
+  // `after()` keeps the function alive until the promise resolves — so
+  // the work survives the response, but the client still sees an instant
+  // 201 and can poll while showing the thinking animation.
+  after(async () => {
+    try {
+      await runGeneration(id, identity);
+    } catch (e) {
+      console.error("[api] runGeneration failed", e);
+      await store.update(id, {
+        status: "failed",
+        error: (e as Error).message || "Generation failed",
+      });
+    }
+  });
 
-  return NextResponse.json({ id, jobId: id, status: "ready" }, { status: 201 });
+  return NextResponse.json({ id, jobId: id, status: "pending" }, { status: 201 });
 }
 
 async function runGeneration(id: string, identity: string) {
