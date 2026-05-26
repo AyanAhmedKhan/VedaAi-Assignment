@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 type Step = {
   /** Optional route to navigate to before showing the step */
@@ -126,16 +126,22 @@ const STORAGE_KEY = "vedaai.tour.seen.v1";
 
 export function ProductTour() {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   const [anim, setAnim] = useState<"in" | "out">("in");
+  /** Path the user was on when the tour opened — restored on close. */
+  const originRef = useRef<string | null>(null);
 
   // First-visit auto-open
   useEffect(() => {
     try {
       if (!localStorage.getItem(STORAGE_KEY)) {
         // small delay so app paints first
-        setTimeout(() => setOpen(true), 600);
+        setTimeout(() => {
+          originRef.current = window.location.pathname + window.location.search;
+          setOpen(true);
+        }, 600);
       }
     } catch {}
   }, []);
@@ -143,6 +149,7 @@ export function ProductTour() {
   // Listen for global trigger
   useEffect(() => {
     function onTrigger() {
+      originRef.current = window.location.pathname + window.location.search;
       setIdx(0);
       setOpen(true);
     }
@@ -197,6 +204,15 @@ export function ProductTour() {
       localStorage.setItem(STORAGE_KEY, "1");
     } catch {}
     setOpen(false);
+    // Restore the page the user was on when the tour started, if the tour
+    // moved them somewhere else along the way.
+    const origin = originRef.current;
+    if (origin && origin !== pathname) {
+      try {
+        router.push(origin);
+      } catch {}
+    }
+    originRef.current = null;
   }
 
   if (!open) return null;
