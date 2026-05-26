@@ -2,11 +2,12 @@
 
 <img src="public/figma/screen1/logo-mark.svg" alt="VedaAI" width="64" height="64" />
 
-# VedaAI
+# VedaAI — Hiring Assignment Submission
 
-### AI Assessment Creator for K-12 teachers
+### AI Assessment Creator
 
-Generate **exam-ready question papers** in seconds — sections, difficulty, marks, answer keys, and a downloadable PDF.
+**Submitted to:** Veda AI  
+**Submitted by:** Ayan Ahmed Khan · [LinkedIn](https://www.linkedin.com/in/ayan-ahmed-khan-95978620a/) · ayan.ahmedkhan591@gmail.com
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-000?logo=next.js&logoColor=fff)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=fff)](https://www.typescriptlang.org/)
@@ -22,148 +23,196 @@ Generate **exam-ready question papers** in seconds — sections, difficulty, mar
 
 ---
 
-## ✨ What it does
+## 1. Submission Overview
 
-A teacher fills a single form (subject, class, question types, marks, instructions), hits **Generate**, and watches an AI build a complete, exam-style question paper in real time — with proper sections, bordered tables, difficulty tags, answer keys, and a clean PDF.
+This repository is my submission for the **VedaAI AI Assessment Creator** hiring assignment.
 
-The output isn't a raw LLM dump — it's a **typed JSON document** the model is forced to return, validated server-side with Zod, then rendered with the same care you'd give an HTML report.
+The brief asked for a system where a teacher can:
+1. Create an assignment via a designed form
+2. Generate a structured question paper using an LLM (no raw model output)
+3. View the generated output in a clean, exam-style layout
 
-## 🎯 Highlights
+I have delivered the **full system**: the pixel-perfect Figma-based frontend, a strict structured-output AI pipeline, a complete Node.js + Express + MongoDB + Redis + BullMQ + Socket.IO backend, and a self-contained Next.js fallback so the project runs end-to-end with **a single `npm run dev`** — without any external infrastructure — for fast review.
 
-- 🧠 **Gemini 2.5 Flash** with native JSON-schema response mode — the model *must* return data matching our schema
-- 🛡️ **Zod re-validates server-side** — never renders raw model text
-- ⚡ **End-to-end live updates** — WebSocket (full stack) or polling (zero-infra demo)
-- 🎨 **Pixel-perfect Figma implementation** — every screen matches the design spec
-- 📱 **Fully mobile-responsive** — separate optimized layouts under `lg`
-- 🖨️ **Print-friendly + React-PDF export** — both options ship
-- 🧩 **Dual runtime** — runs standalone on Vercel **or** with full Express + Mongo + Redis + BullMQ + Socket.IO
+> **TL;DR for the reviewer:** open the repo, run `npm install && npm run dev`, click **Generate**. Everything works.
 
-## 🚀 Feature tour
+---
 
-### Create flow
-- **Smart form** with subject/grade dropdowns + "Add custom" option (11 subject presets, 12 grades)
-- **Question-type picker** with 10 presets (MCQ, T/F, Fill-in-the-Blanks, Short, Long, Diagram, Numerical, Case Study, Match, Essay) — custom labels supported
-- **Number steppers** for counts and marks
-- **File upload** (PDF / TXT / image) for reference material
-- **Validation** with Zod — no empty / negative values, max bounds, friendly inline errors
-- **⌘/Ctrl+Enter** submits from anywhere on the page
+## 2. Spec compliance checklist
 
-### Generation (the AI bit)
-- **Strict prompt** — schema-locked output. The model returns sections / questions / difficulty / marks / **answerKey** as JSON.
-- **Animated "thinking" UX** — Claude-style cycling status messages with brand-orange gradient text, pulsing dot, and shimmer skeleton mimicking the real paper layout
-- **Graceful fallback** — if Gemini fails (429 quota, network, anything), an **offline question bank** with realistic Class-8 questions kicks in and a soft amber banner appears: *"Gemini free-tier quota exceeded — used the offline generator."*
-- **No crash modes** — every job either succeeds or fails cleanly
+Every required item from the brief is implemented:
 
-### Output paper
-- **Exam-paper layout** — uppercase banner, Note section, bordered Student-info row, **per-section tables** with No. / Question / Marks / Type / Difficulty
-- **Color-coded difficulty pills** — Easy 🟢 / Moderate 🟡 / Hard 🔴
-- **Per-question regenerate** ✨ — click the sparkle on any row, only that question is regenerated via Gemini (with `avoidTexts` so it doesn't duplicate siblings)
-- **Inline edit** — click any question text → in-place textarea with ⌘+Enter save / Esc cancel. Marks recalculate automatically.
-- **Answer key toggle** 👁️ — show/hide model answers under each question (emerald sub-row)
-- **Copy as Markdown** — paste into Google Docs, WhatsApp, anywhere. Includes answers if toggled on.
-- **Share link** 🔗 — `/share/<id>` public read-only page, link auto-copied to clipboard
-- **Print** 🖨️ — `@media print` styles hide chrome and render the paper edge-to-edge
-- **Download PDF** 📥 — proper A4 layout via `@react-pdf/renderer`, **not** HTML print; bordered tables, zebra rows, color-coded difficulty pills
+### 2.1 Assignment Creation (Frontend)
+| Requirement | Status |
+|---|:-:|
+| Pixel-perfect Figma implementation | ✅ |
+| File upload (PDF / TXT / image, optional) | ✅ |
+| Due date field | ✅ |
+| Question types (preset dropdown + custom) | ✅ |
+| Number of questions + marks (steppers) | ✅ |
+| Additional instructions | ✅ |
+| Validation (no empty / negative) — Zod | ✅ |
+| State management — **Zustand** | ✅ |
+| WebSocket management — Socket.IO client | ✅ |
 
-### Lists & search
-- **Assignments page** — live list (auto-refresh 3s), search box, status filter, status pills (pending / processing / ready / failed), per-card menu (View / **Duplicate** / Delete)
-- **Library page** — searches **inside question text**, ranked by hit count, with `<mark>` highlight on matches and snippet previews per card
+### 2.2 AI Question Generation
+| Requirement | Status |
+|---|:-:|
+| Inputs → structured prompt | ✅ |
+| Sections (A, B, ...) | ✅ |
+| Questions with text | ✅ |
+| Difficulty (Easy / Moderate / Hard) | ✅ |
+| Per-question marks | ✅ |
+| **Does not render raw LLM response** | ✅ (JSON schema + Zod re-validation) |
 
-### Workspace
-- **Notifications** 🔔 — bell icon with unread badge, modern glass dropdown, "Mark all read", clicking jumps to the paper. Auto-refreshes every 5s.
-- **Profile menu** — avatar header card with online-status ring, role pill, grouped sections (Account / Workspace), per-item icon tiles, hover chevrons
-- **Profile page** — editable name / email / role / school / bio, persisted to `localStorage`
-- **Settings page** — defaults for new papers (subject / grade / school), theme preference, notification toggles
-- **Analytics page** — KPIs (total assignments / questions / marks / subjects), 4 bar-chart cards (status, difficulty mix, by subject, by grade), 7-day spark histogram
-- **Groups page** + **Library page** with full styling
+### 2.3 Backend System
+| Requirement | Status |
+|---|:-:|
+| Node.js + Express + TypeScript | ✅ |
+| MongoDB (Mongoose) | ✅ |
+| Redis caching + job state | ✅ |
+| BullMQ background jobs (generation, PDF) | ✅ |
+| WebSocket real-time updates | ✅ Socket.IO + Redis pub/sub bridge |
+| Flow: API → queue → worker → store → notify FE | ✅ |
 
-### Power-user
-- **Command palette** ⌘/Ctrl+K — fuzzy-searchable global navigator with three groups (Actions / Navigate / Library). Recent papers appear directly as commands.
-- **⌘/Ctrl+Enter** to submit forms
-- **Esc** closes any open dropdown / palette / dialog
+### 2.4 Output Page (Enhanced)
+| Requirement | Status |
+|---|:-:|
+| Student info inputs (Name / Roll / Section) | ✅ |
+| Sections with titles + instructions | ✅ |
+| Question text + difficulty tag + marks | ✅ |
+| Real-exam visual hierarchy (bordered tables) | ✅ |
+| Mobile responsive | ✅ |
 
-## 🧱 Tech stack
+### 2.5 Bonus Features
+| Bonus | Status |
+|---|:-:|
+| Download as PDF (proper formatting, not HTML print) | ✅ `@react-pdf/renderer` |
+| Action bar (Regenerate) | ✅ Full **and** per-question |
+| Difficulty badges/tags | ✅ Colour-coded pills |
+
+### 2.6 Pitfalls explicitly avoided
+- ❌ Rendering raw AI response → ✅ schema-locked JSON + Zod
+- ❌ Poor formatting / misaligned sections → ✅ bordered table layout per section
+- ❌ Single block of text → ✅ proper banner, notes, student row, sectioned tables
+
+---
+
+## 3. Beyond the spec
+
+Features I built to demonstrate end-to-end product thinking:
+
+| Feature | Why it matters |
+|---|---|
+| **Per-question regenerate** | Click any sparkle icon → only that question is regenerated. Strict `avoidTexts` so it differs from siblings. Native AI workflow. |
+| **Inline edit** | Click any question → in-place textarea → ⌘+Enter to save. Marks recalc automatically. Teachers always tweak AI output. |
+| **Answer key toggle** | Gemini also emits a model `answerKey` per question; toggle shows them inline as emerald sub-rows. |
+| **Copy as Markdown** | One-click clipboard export (with or without answers) for Docs / WhatsApp. |
+| **Public share link** | `/share/<id>` read-only page gated behind a public API that exposes only safe fields. |
+| **Print-friendly layout** | `@media print` hides chrome, paper goes edge-to-edge, table borders forced. |
+| **Duplicate assignment** | One-click deep clone from the assignments list. |
+| **Deep search in library** | Searches inside question text, highlights matches, ranked by hit count. |
+| **Command palette** | ⌘/Ctrl+K global navigator with fuzzy search across pages + recent papers. |
+| **Notifications + Profile + Settings + Analytics + Library + Groups** | Six additional pages, fully wired with API routes. |
+| **Animated AI "thinking" UX** | Claude-style cycling status messages, gradient text, shimmer skeleton paper preview. |
+| **Graceful Gemini fallback** | If Gemini fails (quota, network, anything) an offline question bank with realistic Class-8 questions kicks in, with a friendly amber banner — the demo never crashes. |
+| **Dual runtime** | Same UI runs against internal Next.js Route Handlers (zero infra) OR the full Express + Mongo + Redis + BullMQ stack — toggled by one env var. |
+
+---
+
+## 4. Architecture
+
+Two runtimes share the same UI. Flip between them with a single env variable.
+
+### Mode A — self-contained (used for the live demo)
+```
+Next.js UI ─▶ /api/* (Route Handlers, Node runtime)
+        │              │
+        │ poll 1.5s    ▼
+        └── In-memory store + notifications ─▶ Gemini (JSON mode)
+                                                      │
+                                                      └─ Zod re-validation
+```
+
+### Mode B — full architecture (spec-grade)
+```
+Next.js ──HTTP──▶ Express API ──▶ MongoDB
+   │                  │
+   │ Socket.IO       │ enqueue
+   │  events         ▼
+   │            Redis (BullMQ)
+   │                  │
+   │                  ▼
+   │            BullMQ Worker ──▶ Gemini
+   │                  │ Redis pub/sub
+   └──────────────────┘
+```
+
+**Switch:** set `NEXT_PUBLIC_API_BASE=http://localhost:4000` to use Mode B; leave it blank for Mode A.
+
+### Why structured output
+
+The Gemini call uses:
+```ts
+generationConfig: {
+  responseMimeType: "application/json",
+  responseSchema: { /* typed schema */ },
+}
+```
+
+This forces Gemini to return JSON matching our schema (sections, questions, difficulty, marks, typeId, answerKey). Zod re-validates server-side. The frontend renders from typed data — **never** raw model text. A model swap is one line; rendering is untouched.
+
+---
+
+## 5. Tech stack
 
 | Layer | Tech |
 |---|---|
-| Frontend | Next.js 15 (App Router) · TypeScript · Tailwind · Zustand (form + assignment + profile stores) · Zod (validation) · `@react-pdf/renderer` (PDF) · Socket.IO client (when external backend is configured) |
-| Internal API | Next.js Route Handlers · in-memory store (survives HMR via `globalThis`) · Zod (request validation) · `@google/generative-ai` |
-| External backend | Node.js · Express · TypeScript · Mongoose (MongoDB) · ioredis + BullMQ (queue + cache) · Socket.IO server + Redis pub/sub bridge |
-| AI | Google Gemini 2.5 Flash with `responseMimeType: "application/json"` + typed `responseSchema` — strict JSON output |
-| Auth-lite | Zustand `persist` middleware for profile + settings (localStorage) |
+| **Frontend** | Next.js 15 (App Router) · TypeScript · Tailwind · Zustand (3 stores: form, assignment, profile) · Zod · `@react-pdf/renderer` · Socket.IO client (Mode B) |
+| **Internal API (Mode A)** | Next.js Route Handlers · in-memory store (HMR-safe via `globalThis`) · Zod request validation · `@google/generative-ai` |
+| **Backend (Mode B)** | Node.js · Express · TypeScript · Mongoose · ioredis · BullMQ · Socket.IO + Redis pub/sub |
+| **AI** | Google Gemini 2.5 Flash with native JSON-schema response mode |
+| **Persistence (client)** | Zustand `persist` middleware → localStorage for profile / settings |
 
-## 🏗️ Architecture
+---
 
-Two runtimes live in the same repo. Both use the **same UI** — the only difference is whether the API and worker run in-process (Next.js Route Handlers) or as a separate Node service.
+## 6. Quick start
 
-```
-┌────────────────────────────────────────────────────────┐
-│ Mode A — self-contained (Vercel / npm run dev)        │
-│                                                        │
-│  Next.js App ──▶ /api/* (Route Handlers, Node runtime) │
-│         ▲                  │                           │
-│         │  poll 1.5s       ▼                           │
-│         └────── In-memory Map  ──▶  Gemini (JSON mode) │
-│                  + Notifications              │        │
-│                                               └─ Zod ──┘
-└────────────────────────────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────┐
-│ Mode B — full architecture (matches spec)              │
-│                                                        │
-│  Next.js  ──HTTP──▶  Express API  ──▶  MongoDB         │
-│      │                    │                            │
-│      │ Socket.IO          │ enqueue                    │
-│      │ events             ▼                            │
-│      │              Redis (BullMQ)                     │
-│      │                    │                            │
-│      │                    ▼                            │
-│      │              BullMQ Worker  ──▶  Gemini         │
-│      │                    │ Redis pub/sub              │
-│      └────────────────────┘                            │
-└────────────────────────────────────────────────────────┘
-```
-
-Toggle is **one env var**: set `NEXT_PUBLIC_API_BASE=http://localhost:4000` to use Mode B; leave it blank for Mode A.
-
-## ⚡ Quick start (Mode A — zero infra)
-
+### A. Zero-infra demo (recommended for review)
 ```bash
-git clone <repo>
-cd VedaAI
-cp .env.local.example .env.local   # already has a Gemini free-tier key
+git clone https://github.com/AyanAhmedKhan/VedaAi-Assignment
+cd VedaAi-Assignment
+cp .env.local.example .env.local      # already has a Gemini free-tier key
 npm install
 npm run dev
 ```
+Open <http://localhost:3000>, fill the form, click **Generate**.
 
-Open <http://localhost:3000>. Fill the form, click **Generate**, watch the paper appear.
-
-## 🏭 Full stack (Mode B)
-
+### B. Full backend (Mode B)
 ```bash
-# 1. infra
-docker compose up -d                # Mongo + Redis
+docker compose up -d                  # Mongo + Redis
 
-# 2. backend (2 terminals)
 cd server
 cp .env.example .env
 npm install
-npm run dev                         # Express + Socket.IO on :4000
-npm run worker                      # BullMQ worker
+npm run dev                           # Express + Socket.IO :4000
+npm run worker                        # BullMQ worker (new terminal)
 
-# 3. frontend (repo root)
+cd ..
 echo "NEXT_PUBLIC_API_BASE=http://localhost:4000" >> .env.local
-npm run dev                         # Next.js on :3000
+npm run dev                           # Next.js :3000
 ```
 
-## 🔐 Environment
+---
+
+## 7. Environment variables
 
 ### Root `.env.local`
 | Var | Notes |
 |---|---|
-| `GEMINI_API_KEY` | Gemini AI key (free tier works). Leave empty → automatic offline-mode |
-| `GEMINI_MODEL` | Default `gemini-2.5-flash` |
-| `NEXT_PUBLIC_API_BASE` | Leave empty (Mode A) or set to the Express URL (Mode B) |
+| `GEMINI_API_KEY` | Gemini AI key. Leave empty → automatic offline mode. |
+| `GEMINI_MODEL` | Default `gemini-2.5-flash`. |
+| `NEXT_PUBLIC_API_BASE` | Empty (Mode A) or Express URL (Mode B). |
 
 ### `server/.env`
 | Var | Default |
@@ -175,25 +224,27 @@ npm run dev                         # Next.js on :3000
 | `GEMINI_API_KEY` | _empty → mock_ |
 | `GEMINI_MODEL` | `gemini-2.5-flash` |
 
-## 🛣️ API surface (internal `/api/*`)
+---
+
+## 8. API surface (internal `/api/*`)
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET / POST` | `/api/assignments` | List · Create (validated with Zod) |
+| `GET / POST` | `/api/assignments` | List · Create |
 | `GET / DELETE` | `/api/assignments/:id` | Read · Delete |
-| `POST` | `/api/assignments/:id/regenerate` | Full re-generation of a paper |
-| `POST` | `/api/assignments/:id/duplicate` | Deep clone an assignment |
-| `PATCH` | `/api/assignments/:id/questions/:section/:q` | Inline-edit one question (text / difficulty / marks / answerKey) |
-| `POST` | `/api/assignments/:id/questions/:section/:q` | Regenerate one question via Gemini |
+| `POST` | `/api/assignments/:id/regenerate` | Full re-generation |
+| `POST` | `/api/assignments/:id/duplicate` | Deep clone |
+| `PATCH` | `/api/assignments/:id/questions/:section/:q` | Inline-edit one question |
+| `POST` | `/api/assignments/:id/questions/:section/:q` | Regenerate one question |
 | `GET / POST` | `/api/notifications` | List · Mark all read |
-| `GET` | `/api/analytics` | KPIs, by-status / by-subject / by-grade, difficulty mix, 7-day histogram |
+| `GET` | `/api/analytics` | KPIs, by-status / subject / grade, difficulty mix, 7-day histogram |
 | `GET` | `/api/share/:id` | Public read-only payload for `/share/<id>` |
 
-### WebSocket events (Mode B)
-- Client → `subscribe(assignmentId)`
-- Server → `assignment:status`, `assignment:ready`, `assignment:failed`
+**WebSocket events (Mode B):** `assignment:status`, `assignment:ready`, `assignment:failed`.
 
-## 🗂️ Project layout
+---
+
+## 9. Project layout
 
 ```
 VedaAI/
@@ -204,102 +255,69 @@ VedaAI/
 │  ├─ analytics/                   KPIs + charts
 │  ├─ library/                     Deep search across questions
 │  ├─ profile/  settings/  groups/ Workspace pages
-│  ├─ share/[id]/                  Public share view
-│  ├─ api/                         Route Handlers (Mode A backend)
-│  │  ├─ assignments/route.ts
-│  │  ├─ assignments/[id]/route.ts
-│  │  ├─ assignments/[id]/regenerate/route.ts
-│  │  ├─ assignments/[id]/duplicate/route.ts
-│  │  ├─ assignments/[id]/questions/[section]/[q]/route.ts
-│  │  ├─ notifications/route.ts
-│  │  ├─ analytics/route.ts
-│  │  └─ share/[id]/route.ts
+│  ├─ share/[id]/                  Public read-only share view
+│  ├─ api/                         Route Handlers (Mode A)
 │  ├─ icon.svg  apple-icon.svg     Favicons
 │  └─ globals.css                  Tailwind + print + thinking animations
-├─ src/components/
-│  ├─ AssignmentForm + Mobile      Validated multi-field form
-│  ├─ AssignmentOutput             Live paper, inline edit, regenerate
-│  ├─ PaperSkeleton                Shimmer loading
-│  ├─ ThinkingIndicator            Animated cycling status
-│  ├─ DifficultyBadge
-│  ├─ PresetCombobox               Subject / Grade dropdown with custom
-│  ├─ QuestionTypeSelect           10 preset question types
-│  ├─ TopBar                       Notifications + profile dropdowns
-│  ├─ Sidebar                      Nav + CTA
-│  ├─ CommandPalette               ⌘/Ctrl+K global navigator
-│  ├─ AnalyticsPanel · ProfilePanel · SettingsPanel · LibraryPanel
-│  └─ SharePaper                   Public read-only view
-├─ src/server/                     Server-only modules (Node runtime)
-│  ├─ llm.ts                       Gemini call · single-question regenerate · mock
-│  ├─ mockBank.ts                  Realistic Class-8 question bank
-│  ├─ store.ts                     In-memory assignments + notifications
-│  └─ validate.ts                  Zod request schemas
-├─ src/store/                      Zustand (form, assignment, profile/settings)
+├─ src/components/                 ~25 components — all typed, mobile-aware
+├─ src/server/                     Server-only modules (Gemini + mock + store)
+├─ src/store/                      Zustand stores
 ├─ src/hooks/useAssignmentSocket   Socket / polling abstraction
-├─ src/lib/
-│  ├─ api.ts                       Typed client
-│  ├─ pdf.tsx                      React-PDF document
-│  ├─ paper-export.ts              Markdown + clipboard
-│  └─ socket.ts                    Socket.IO client (Mode B)
+├─ src/lib/                        api client · pdf · markdown export · socket
 ├─ server/                         Mode B — Express + BullMQ + Mongo + Redis
-│  └─ src/{index,worker,routes,models,services,lib}.ts
 ├─ docker-compose.yml              Mongo + Redis
+├─ .vercelignore                   Excludes /server from Vercel builds
 └─ next.config.ts
 ```
 
-## ⌨️ Keyboard shortcuts
+---
+
+## 10. Keyboard shortcuts
 
 | Shortcut | Action |
 |---|---|
 | `⌘/Ctrl + K` | Open command palette |
-| `⌘/Ctrl + Enter` | Submit the create form from anywhere |
+| `⌘/Ctrl + Enter` | Submit the create form |
 | `Esc` | Close any dropdown / dialog / palette |
-| `↑ / ↓` | Navigate within the palette |
-| `Enter` | Select highlighted result |
-
-## 🧪 Why structured output (and not raw model text)
-
-The Gemini call uses:
-```ts
-generationConfig: {
-  responseMimeType: "application/json",
-  responseSchema: { /* typed schema */ },
-}
-```
-
-This forces Gemini to return JSON that conforms to our schema (sections, questions, difficulty, marks, typeId, answerKey). On top of that, Zod re-validates server-side, so any malformed output is rejected cleanly. The frontend renders from typed data — **never** from raw model text — which means:
-
-- Layout, badges, totals, and PDF stay consistent regardless of which model is used
-- The same render path works for Gemini output, the offline mock, and inline-edited data
-- A model upgrade swaps one line — no rendering changes
-
-## ☁️ Deployment
-
-**Mode A (recommended for demo):** Push to GitHub → import to Vercel → set `GEMINI_API_KEY` env var → deploy. Done.
-
-**Mode B (full architecture):** Vercel for frontend + Railway / Render / Fly for backend + worker + managed Mongo (Atlas) + Redis (Upstash). Set `NEXT_PUBLIC_API_BASE` on the frontend and the same UI starts using real WebSockets and BullMQ.
-
-## 🗺️ Roadmap ideas (not built)
-
-- Student-side fillable mode + AI auto-grading
-- Assign papers to groups (use `/groups`)
-- Rubric-based grading for long-answer questions
-- OCR an existing worksheet → generate similar questions (Gemini vision)
-- Version history & diff per assignment
-- Real-time multi-teacher collaborative editing (WS infra already in place)
-- Difficulty-mix slider on the form (Easy / Moderate / Hard %)
-- Bloom's Taxonomy tag column
-
-## 📜 License
-
-MIT.
+| `↑ / ↓ / Enter` | Palette navigation |
 
 ---
 
+## 11. Deployment
+
+The repository is **Vercel-ready**. The Mode-A pipeline runs entirely inside Next.js Route Handlers, so a single click deploys the full Generate → render → PDF → share flow.
+
+**Quick deploy:**
+1. Push to GitHub (already done — <https://github.com/AyanAhmedKhan/VedaAi-Assignment>)
+2. Import on Vercel → framework auto-detects Next.js
+3. Set `GEMINI_API_KEY` and `GEMINI_MODEL` env vars
+4. Deploy
+
+For the full Mode-B architecture, deploy `/server` to Railway / Render / Fly, point a managed Mongo Atlas + Upstash Redis at it, and set `NEXT_PUBLIC_API_BASE` on Vercel — same UI, real WebSockets and BullMQ.
+
+---
+
+## 12. What I'd build next (if hired)
+
+- Student-side fillable mode + AI auto-grading
+- Rubric-based grading for long-answer questions
+- OCR an existing worksheet → generate similar questions (Gemini vision)
+- Version history per assignment with diff
+- Real-time multi-teacher collab (WS infrastructure already in place)
+- Difficulty-mix slider & Bloom's Taxonomy tagging
+
+---
+
+## 13. Author
+
 <div align="center">
 
-**Built with ❤️ by [Ayan Ahmadkhan](mailto:tech@discoverventures.in)**
+### Built end-to-end by **Ayan Ahmed Khan**
 
-_Designed end-to-end: pixel-perfect UI, structured AI prompts, dual-runtime architecture, full feature suite._
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Ayan%20Ahmed%20Khan-0A66C2?logo=linkedin&logoColor=fff)](https://www.linkedin.com/in/ayan-ahmed-khan-95978620a/)
+[![Email](https://img.shields.io/badge/Email-ayan.ahmedkhan591%40gmail.com-EA4335?logo=gmail&logoColor=fff)](mailto:ayan.ahmedkhan591@gmail.com)
+[![GitHub](https://img.shields.io/badge/GitHub-AyanAhmedKhan-181717?logo=github&logoColor=fff)](https://github.com/AyanAhmedKhan)
+
+Thank you for the opportunity to work on this assignment for **Veda AI**.
 
 </div>
