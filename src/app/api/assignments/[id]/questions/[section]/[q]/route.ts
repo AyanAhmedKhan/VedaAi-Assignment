@@ -10,7 +10,7 @@ type Params = { id: string; section: string; q: string };
 // PATCH — inline edit a single question (text, difficulty, marks, answerKey)
 export async function PATCH(req: Request, { params }: { params: Promise<Params> }) {
   const { id, section, q } = await params;
-  const doc = store.get(id);
+  const doc = await store.get(id);
   if (!doc || !doc.result) return NextResponse.json({ error: "NotFound" }, { status: 404 });
 
   const sIdx = Number(section);
@@ -53,14 +53,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<Params> 
   );
   doc.result.totalMarks = totalMarks;
 
-  store.update(id, { result: doc.result });
+  await store.update(id, { result: doc.result });
   return NextResponse.json({ ok: true, question: next, totalMarks });
 }
 
 // POST — regenerate a single question via Gemini
 export async function POST(req: Request, { params }: { params: Promise<Params> }) {
   const { id, section, q } = await params;
-  const doc = store.get(id);
+  const doc = await store.get(id);
   if (!doc || !doc.result) return NextResponse.json({ error: "NotFound" }, { status: 404 });
 
   const sIdx = Number(section);
@@ -85,9 +85,9 @@ export async function POST(req: Request, { params }: { params: Promise<Params> }
   );
 
   sec.questions[qIdx] = outcome.question;
-  store.update(id, { result: doc.result });
+  await store.update(id, { result: doc.result });
 
-  notifications.push({
+  await notifications.push({
     title:
       outcome.source === "gemini"
         ? "Question regenerated"

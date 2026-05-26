@@ -1,17 +1,27 @@
 import "server-only";
+import { Redis } from "@upstash/redis";
+
+const HAS_UPSTASH =
+  !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+
+const redis: Redis | null = HAS_UPSTASH
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    })
+  : null;
 
 declare global {
   // eslint-disable-next-line no-var
-  var __vedaai_rate: Map<string, { used: number; date: string }> | undefined;
+  var __vedaai_rate_mem: Map<string, { used: number; date: string }> | undefined;
 }
 
-const store: Map<string, { used: number; date: string }> =
-  globalThis.__vedaai_rate ?? (globalThis.__vedaai_rate = new Map());
+const mem: Map<string, { used: number; date: string }> =
+  globalThis.__vedaai_rate_mem ?? (globalThis.__vedaai_rate_mem = new Map());
 
 export const AI_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT ?? 5);
 
 function todayKey(): string {
-  // UTC day boundary so the limit is predictable across regions.
   return new Date().toISOString().slice(0, 10);
 }
 
@@ -22,6 +32,10 @@ function nextResetISO(): string {
   return d.toISOString();
 }
 
+function redisKey(identity: string): string {
+  return `vedaai:rate:${identity || "global"}:${todayKey()}`;
+}
+
 export type RateStatus = {
   used: number;
   remaining: number;
@@ -30,11 +44,16 @@ export type RateStatus = {
   resetAt: string;
 };
 
-export function getRateStatus(identity: string): RateStatus {
-  const key = identity || "global";
-  const today = todayKey();
-  const entry = store.get(key);
-  const used = !entry || entry.date !== today ? 0 : entry.used;
+export async function getRateStatus(identity: string): Promise<RateStatus> {
+  let used = 0;
+  if (redis) {
+    const v = await redis.get<number>(redisKey(identity));
+    used = v ?? 0;
+  } else {
+    const today = todayKey();
+    const entry = mem.get(identity || "global");
+    used = !entry || entry.date !== today ? 0 : entry.used;
+  }
   const remaining = Math.max(0, AI_DAILY_LIMIT - used);
   return {
     used,
@@ -45,15 +64,24 @@ export function getRateStatus(identity: string): RateStatus {
   };
 }
 
-/** Records a successful AI call. Should be called only AFTER the LLM succeeds. */
-export function recordRateHit(identity: string) {
-  const key = identity || "global";
+export async function recordRateHit(identity: string): Promise<void> {
+  if (redis) {
+    const key = redisKey(identity);
+    const next = await redis.incr(key);
+    if (next === 1) {
+      // First hit of the day — TTL to next UTC midnight.
+      const ttl = Math.ceil((new Date(nextResetISO()).getTime() - Date.now()) / 1000);
+      await redis.expire(key, ttl);
+    }
+    return;
+  }
   const today = todayKey();
-  const entry = store.get(key);
+  const key = identity || "global";
+  const entry = mem.get(key);
   if (!entry || entry.date !== today) {
-    store.set(key, { used: 1, date: today });
+    mem.set(key, { used: 1, date: today });
   } else {
-    store.set(key, { used: entry.used + 1, date: today });
+    mem.set(key, { used: entry.used + 1, date: today });
   }
 }
 

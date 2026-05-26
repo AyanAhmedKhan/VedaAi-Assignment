@@ -123,7 +123,7 @@ export async function generateQuestionPaper(
   const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
   // Per-day rate limit. Once exceeded, always fall back to the offline bank.
-  const rate = getRateStatus(identity);
+  const rate = await getRateStatus(identity);
   if (!rate.allowed) {
     return {
       result: mockGenerate(input),
@@ -153,8 +153,8 @@ export async function generateQuestionPaper(
     const result = await model.generateContent(buildUserPrompt(input));
     const text = result.response.text();
     const parsed = JSON.parse(text) as GeneratedResult;
-    recordRateHit(identity);
-    return { result: parsed, source: "gemini", rate: getRateStatus(identity) };
+    await recordRateHit(identity);
+    return { result: parsed, source: "gemini", rate: await getRateStatus(identity) };
   } catch (e) {
     console.warn("[llm] Gemini call failed, falling back to mock:", (e as Error).message);
     return {
@@ -205,7 +205,7 @@ export async function regenerateQuestion(
   const apiKey = process.env.GEMINI_API_KEY;
   const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-  const rate = getRateStatus(identity);
+  const rate = await getRateStatus(identity);
   if (!rate.allowed) {
     return {
       question: mockOneQuestion(input),
@@ -252,7 +252,7 @@ Make it materially different from the AVOID list, but still fitting the section.
     const r = await model.generateContent(user);
     const text = r.response.text();
     const parsed = JSON.parse(text) as GeneratedResult["sections"][number]["questions"][number];
-    recordRateHit(identity);
+    await recordRateHit(identity);
     return {
       question: {
         ...parsed,
@@ -261,7 +261,7 @@ Make it materially different from the AVOID list, but still fitting the section.
         difficulty: input.question.difficulty,
       },
       source: "gemini",
-      rate: getRateStatus(identity),
+      rate: await getRateStatus(identity),
     };
   } catch (e) {
     console.warn("[llm] regenerateQuestion failed:", (e as Error).message);

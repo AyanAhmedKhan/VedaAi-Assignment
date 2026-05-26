@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const src = store.get(id);
+  const src = await store.get(id);
   if (!src) return NextResponse.json({ error: "NotFound" }, { status: 404 });
 
   const newId = crypto.randomUUID();
@@ -19,11 +19,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     jobId: newId,
     createdAt: now,
     updatedAt: now,
-    // Keep the existing result; the user can regenerate from the new doc if they want.
   };
-  store.set(copy);
+  await store.set(copy);
 
-  notifications.push({
+  await notifications.push({
     title: "Assignment duplicated",
     body: `${copy.subject} — ${copy.grade}`,
     assignmentId: newId,

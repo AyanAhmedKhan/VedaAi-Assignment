@@ -4,13 +4,14 @@ import { notifications } from "@/server/store";
 export const runtime = "nodejs";
 
 export async function GET() {
-  return NextResponse.json({
-    items: notifications.list(),
-    unread: notifications.unreadCount(),
-  });
+  const [items, unread] = await Promise.all([
+    notifications.list(),
+    notifications.unreadCount(),
+  ]);
+  return NextResponse.json({ items, unread });
 }
 
 export async function POST() {
-  notifications.markAllRead();
+  await notifications.markAllRead();
   return NextResponse.json({ ok: true, unread: 0 });
 }

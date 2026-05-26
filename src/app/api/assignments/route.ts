@@ -8,7 +8,7 @@ import type { Assignment } from "@/types/assignment";
 export const runtime = "nodejs";
 
 export async function GET() {
-  return NextResponse.json(store.list());
+  return NextResponse.json(await store.list());
 }
 
 export async function POST(req: Request) {
@@ -47,23 +47,26 @@ export async function POST(req: Request) {
   };
   const identity = identityFromRequest(req);
 
-  store.set(doc);
-  notifications.push({
+  await store.set(doc);
+  await notifications.push({
     title: "Assignment created",
     body: `${doc.subject} — ${doc.grade}`,
     assignmentId: id,
   });
 
-  // fire-and-forget background generation
-  void runGeneration(id, identity);
+  // Run generation synchronously so the result is persisted before the
+  // serverless function exits. On Vercel, fire-and-forget Promises after
+  // res.json() are killed when the function returns — that's why polls
+  // sometimes returned 404 with status="pending" forever.
+  await runGeneration(id, identity);
 
-  return NextResponse.json({ id, jobId: id, status: "pending" }, { status: 201 });
+  return NextResponse.json({ id, jobId: id, status: "ready" }, { status: 201 });
 }
 
 async function runGeneration(id: string, identity: string) {
-  const doc = store.get(id);
+  const doc = await store.get(id);
   if (!doc) return;
-  store.update(id, { status: "processing" });
+  await store.update(id, { status: "processing" });
   const outcome = await generateQuestionPaper(
     {
       subject: doc.subject,
@@ -74,16 +77,18 @@ async function runGeneration(id: string, identity: string) {
     },
     identity
   );
-  store.update(id, {
+  await store.update(id, {
     status: "ready",
     result: outcome.result,
     source: outcome.source,
     warning: outcome.warning ?? "",
     error: "",
   });
-  notifications.push({
+  await notifications.push({
     title:
-      outcome.source === "gemini" ? "Question paper ready" : "Paper ready (offline mode)",
+      outcome.source === "gemini"
+        ? "Question paper ready"
+        : "Paper ready (offline mode)",
     body: outcome.warning || `${doc.subject} — ${doc.grade}`,
     assignmentId: id,
   });

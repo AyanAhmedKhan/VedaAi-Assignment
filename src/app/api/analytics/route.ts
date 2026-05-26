@@ -4,7 +4,7 @@ import { store } from "@/server/store";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const items = store.list();
+  const items = await store.list();
   const total = items.length;
   const byStatus = items.reduce<Record<string, number>>((acc, a) => {
     acc[a.status] = (acc[a.status] ?? 0) + 1;

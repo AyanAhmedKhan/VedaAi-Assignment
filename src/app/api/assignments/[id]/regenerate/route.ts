@@ -7,43 +7,42 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const doc = store.get(id);
+  const doc = await store.get(id);
   if (!doc) return NextResponse.json({ error: "NotFound" }, { status: 404 });
 
   const identity = identityFromRequest(req);
 
-  store.update(id, { status: "processing", error: "", result: null });
-  notifications.push({
+  await store.update(id, { status: "processing", error: "", result: null });
+  await notifications.push({
     title: "Regenerating paper",
     body: `${doc.subject} — ${doc.grade}`,
     assignmentId: id,
   });
 
-  void (async () => {
-    const outcome = await generateQuestionPaper(
-      {
-        subject: doc.subject,
-        grade: doc.grade,
-        school: doc.school,
-        instructions: doc.instructions,
-        questionTypes: doc.questionTypes,
-      },
-      identity
-    );
-    store.update(id, {
-      status: "ready",
-      result: outcome.result,
-      source: outcome.source,
-      warning: outcome.warning ?? "",
-      error: "",
-    });
-    notifications.push({
-      title:
-        outcome.source === "gemini" ? "Question paper ready" : "Paper ready (offline mode)",
-      body: outcome.warning || `${doc.subject} — ${doc.grade}`,
-      assignmentId: id,
-    });
-  })();
+  // Synchronous so the result is persisted before Vercel kills the function.
+  const outcome = await generateQuestionPaper(
+    {
+      subject: doc.subject,
+      grade: doc.grade,
+      school: doc.school,
+      instructions: doc.instructions,
+      questionTypes: doc.questionTypes,
+    },
+    identity
+  );
+  await store.update(id, {
+    status: "ready",
+    result: outcome.result,
+    source: outcome.source,
+    warning: outcome.warning ?? "",
+    error: "",
+  });
+  await notifications.push({
+    title:
+      outcome.source === "gemini" ? "Question paper ready" : "Paper ready (offline mode)",
+    body: outcome.warning || `${doc.subject} — ${doc.grade}`,
+    assignmentId: id,
+  });
 
-  return NextResponse.json({ id, jobId: id, status: "processing" });
+  return NextResponse.json({ id, jobId: id, status: "ready" });
 }
