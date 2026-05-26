@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-page-from: #eeeeee;
+  --bg-page-to: #dadada;
+}
+
+/* Single scroll root: the document scrolls, body just sizes to content. */
+html {
+  overflow-x: hidden;
+}
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  font-family: var(--font-bricolage), sans-serif;
+  color: #303030;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.page-gradient {
+  background: linear-gradient(180deg, var(--bg-page-from) 0%, var(--bg-page-to) 100%);
+}
+
+/* ---- Thinking / shimmer animations ---- */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(240, 240, 240, 0.6) 0px,
+    rgba(220, 220, 220, 0.9) 200px,
+    rgba(240, 240, 240, 0.6) 400px
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes thinking-gradient {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.thinking-text {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.95) 0%,
+    rgba(255,86,35,0.95) 35%,
+    rgba(255,255,255,0.95) 70%,
+    rgba(255,86,35,0.95) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: thinking-gradient 3s linear infinite;
+}
+
+@keyframes thinking-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50%      { transform: scale(1.35); opacity: 1; }
+}
+.thinking-dot {
+  animation: thinking-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up 320ms ease-out both; }
+
+/* ---- Print: hide chrome, render paper edge-to-edge ---- */
+@media print {
+  html, body {
+    background: white !important;
+  }
+  /* Hide chrome: sidebar, topbar, navs, action buttons */
+  aside,
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+  /* Promote the paper to full page */
+  #paper-print-root {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: white !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  #paper-print-root .paper-card {
+    background: white !important;
+    padding: 8mm !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  /* Force visible borders in tables */
+  table,
+  th,
+  td {
+    border-color: #222 !important;
+  }
+  /* Avoid splitting rows across pages */
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+/* Decorative orange ellipse at bottom of canvas */
+.brand-glow::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -180px;
+  width: 1113px;
+  height: 428px;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(255, 86, 35, 0.55), rgba(255, 86, 35, 0));
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
