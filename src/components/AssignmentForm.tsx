@@ -119,6 +119,20 @@ export function AssignmentForm() {
     }
   }
 
+  // Cmd/Ctrl + Enter submits the form from anywhere on the page
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (isMod && e.key === "Enter") {
+        e.preventDefault();
+        if (!submitting) handleSubmit();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subject, grade, school, dueDate, instructions, fileName, questionTypes, submitting]);
+
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (f) setField("fileName", f.name);

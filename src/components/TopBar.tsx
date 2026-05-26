@@ -110,6 +110,31 @@ export function TopBar({
         </span>
       </div>
 
+      {/* Command palette hint */}
+      <button
+        type="button"
+        aria-label="Open command palette"
+        onClick={() => {
+          const evt = new KeyboardEvent("keydown", {
+            key: "k",
+            ctrlKey: !/Mac|iPhone|iPad/.test(navigator.platform),
+            metaKey: /Mac|iPhone|iPad/.test(navigator.platform),
+            bubbles: true,
+          });
+          document.dispatchEvent(evt);
+        }}
+        className="hidden md:flex h-9 px-3 rounded-full bg-surface-off hover:bg-surface-off40/60 items-center gap-2 font-bricolage text-xs text-ink-secondary border border-transparent hover:border-black/5 transition"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
+          <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+        <span>Search</span>
+        <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white text-ink-secondary border border-black/5">
+          ⌘K
+        </kbd>
+      </button>
+
       {/* Notifications */}
       <div className="relative">
         <button
