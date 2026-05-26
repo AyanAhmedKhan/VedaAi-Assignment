@@ -1,0 +1,11 @@
+# Mode-B Express backend lives in this monorepo but is deployed elsewhere
+# (Railway / Render / Fly). Vercel only builds the Next.js app.
+server
+docker-compose.yml
+
+# Local-only artifacts
+.next
+node_modules
+*.tsbuildinfo
+screenshots
+screenshot.png
