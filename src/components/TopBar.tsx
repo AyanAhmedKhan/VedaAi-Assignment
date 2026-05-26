@@ -135,6 +135,29 @@ export function TopBar({
         </kbd>
       </button>
 
+      {/* Shortcuts help */}
+      <button
+        type="button"
+        aria-label="Keyboard shortcuts"
+        onClick={() => {
+          document.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "?", bubbles: true })
+          );
+        }}
+        title="Keyboard shortcuts (press ?)"
+        className="hidden md:flex w-9 h-9 rounded-full bg-surface-off hover:bg-surface-off40/60 items-center justify-center text-ink-secondary border border-transparent hover:border-black/5 transition"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+          <path
+            d="M6.5 6.2a1.6 1.6 0 1 1 2.5 1.3c-.7.4-1 .8-1 1.5M8 11.4h.01"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+
       {/* Notifications */}
       <div className="relative">
         <button

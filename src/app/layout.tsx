@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { CommandPalette } from "@/components/CommandPalette";
+import { ShortcutsOverlay } from "@/components/ShortcutsOverlay";
 
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body suppressHydrationWarning>
         {children}
         <CommandPalette />
+        <ShortcutsOverlay />
       </body>
     </html>
   );

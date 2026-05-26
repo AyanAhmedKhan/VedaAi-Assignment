@@ -111,6 +111,19 @@ export function CommandPalette() {
         label: "Settings",
         run: () => router.push("/settings"),
       },
+      {
+        id: "help",
+        group: "Actions",
+        label: "Show keyboard shortcuts",
+        hint: "Press ? anywhere",
+        keywords: "help shortcuts keyboard cheatsheet",
+        run: () => {
+          // re-dispatch ? so the ShortcutsOverlay listener picks it up
+          document.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "?", bubbles: true })
+          );
+        },
+      },
     ];
     const lib: Command[] = recent.map((r) => ({
       id: `open-${r.id}`,
