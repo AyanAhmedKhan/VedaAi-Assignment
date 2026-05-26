@@ -123,6 +123,15 @@ export const api = {
       method: "POST",
     });
   },
+  rateLimit() {
+    return request<{
+      used: number;
+      remaining: number;
+      limit: number;
+      allowed: boolean;
+      resetAt: string;
+    }>("/api/rate-limit");
+  },
   analytics() {
     return request<{
       total: number;

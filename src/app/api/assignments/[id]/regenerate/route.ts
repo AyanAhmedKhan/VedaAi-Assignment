@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { store, notifications } from "@/server/store";
 import { generateQuestionPaper } from "@/server/llm";
+import { identityFromRequest } from "@/server/rateLimit";
 
 export const runtime = "nodejs";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const doc = store.get(id);
   if (!doc) return NextResponse.json({ error: "NotFound" }, { status: 404 });
+
+  const identity = identityFromRequest(req);
 
   store.update(id, { status: "processing", error: "", result: null });
   notifications.push({
@@ -17,13 +20,16 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   });
 
   void (async () => {
-    const outcome = await generateQuestionPaper({
-      subject: doc.subject,
-      grade: doc.grade,
-      school: doc.school,
-      instructions: doc.instructions,
-      questionTypes: doc.questionTypes,
-    });
+    const outcome = await generateQuestionPaper(
+      {
+        subject: doc.subject,
+        grade: doc.grade,
+        school: doc.school,
+        instructions: doc.instructions,
+        questionTypes: doc.questionTypes,
+      },
+      identity
+    );
     store.update(id, {
       status: "ready",
       result: outcome.result,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { store, notifications } from "@/server/store";
 import { regenerateQuestion } from "@/server/llm";
+import { identityFromRequest } from "@/server/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -57,7 +58,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<Params> 
 }
 
 // POST — regenerate a single question via Gemini
-export async function POST(_req: Request, { params }: { params: Promise<Params> }) {
+export async function POST(req: Request, { params }: { params: Promise<Params> }) {
   const { id, section, q } = await params;
   const doc = store.get(id);
   if (!doc || !doc.result) return NextResponse.json({ error: "NotFound" }, { status: 404 });
@@ -71,14 +72,17 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
 
   const avoidTexts = sec.questions.map((x) => x.text);
 
-  const outcome = await regenerateQuestion({
-    subject: doc.subject,
-    grade: doc.grade,
-    sectionTitle: sec.title,
-    sectionInstruction: sec.instruction,
-    question: sec.questions[qIdx],
-    avoidTexts,
-  });
+  const outcome = await regenerateQuestion(
+    {
+      subject: doc.subject,
+      grade: doc.grade,
+      sectionTitle: sec.title,
+      sectionInstruction: sec.instruction,
+      question: sec.questions[qIdx],
+      avoidTexts,
+    },
+    identityFromRequest(req)
+  );
 
   sec.questions[qIdx] = outcome.question;
   store.update(id, { result: doc.result });

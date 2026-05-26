@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { store, notifications } from "@/server/store";
 import { CreateAssignmentInput } from "@/server/validate";
 import { generateQuestionPaper } from "@/server/llm";
+import { identityFromRequest } from "@/server/rateLimit";
 import type { Assignment } from "@/types/assignment";
 
 export const runtime = "nodejs";
@@ -44,6 +45,8 @@ export async function POST(req: Request) {
     createdAt: now,
     updatedAt: now,
   };
+  const identity = identityFromRequest(req);
+
   store.set(doc);
   notifications.push({
     title: "Assignment created",
@@ -52,22 +55,25 @@ export async function POST(req: Request) {
   });
 
   // fire-and-forget background generation
-  void runGeneration(id);
+  void runGeneration(id, identity);
 
   return NextResponse.json({ id, jobId: id, status: "pending" }, { status: 201 });
 }
 
-async function runGeneration(id: string) {
+async function runGeneration(id: string, identity: string) {
   const doc = store.get(id);
   if (!doc) return;
   store.update(id, { status: "processing" });
-  const outcome = await generateQuestionPaper({
-    subject: doc.subject,
-    grade: doc.grade,
-    school: doc.school,
-    instructions: doc.instructions,
-    questionTypes: doc.questionTypes,
-  });
+  const outcome = await generateQuestionPaper(
+    {
+      subject: doc.subject,
+      grade: doc.grade,
+      school: doc.school,
+      instructions: doc.instructions,
+      questionTypes: doc.questionTypes,
+    },
+    identity
+  );
   store.update(id, {
     status: "ready",
     result: outcome.result,

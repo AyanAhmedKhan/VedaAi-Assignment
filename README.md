@@ -212,6 +212,7 @@ npm run dev                           # Next.js :3000
 |---|---|
 | `GEMINI_API_KEY` | Gemini AI key. Leave empty → automatic offline mode. |
 | `GEMINI_MODEL` | Default `gemini-2.5-flash`. |
+| `AI_DAILY_LIMIT` | Max AI generations per IP per UTC day. Default **5**. Beyond this, the offline question bank is used. |
 | `NEXT_PUBLIC_API_BASE` | Empty (Mode A) or Express URL (Mode B). |
 
 ### `server/.env`

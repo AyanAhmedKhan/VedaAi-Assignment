@@ -6,6 +6,7 @@ import {
 } from "@google/generative-ai";
 import type { GeneratedResult, QuestionTypeInput } from "@/types/assignment";
 import { pickQuestionsForType } from "./mockBank";
+import { getRateStatus, recordRateHit, type RateStatus } from "./rateLimit";
 
 const SYSTEM_PROMPT = `You are an experienced exam paper setter for K-12 classrooms.
 
@@ -92,7 +93,13 @@ export type GenerationOutcome = {
   result: GeneratedResult;
   source: "gemini" | "mock";
   warning?: string;
+  rate?: RateStatus;
 };
+
+function rateLimitMessage(rate: RateStatus): string {
+  const resets = new Date(rate.resetAt).toUTCString().replace(/:\d\d /, " ");
+  return `Daily AI limit reached (${rate.limit}/day). Resets at ${resets}. Used the offline generator.`;
+}
 
 function shortError(e: unknown): string {
   const msg = (e as Error)?.message ?? String(e);
@@ -108,12 +115,26 @@ function shortError(e: unknown): string {
   return "Gemini call failed — used the offline generator.";
 }
 
-export async function generateQuestionPaper(input: Input): Promise<GenerationOutcome> {
+export async function generateQuestionPaper(
+  input: Input,
+  identity: string = "global"
+): Promise<GenerationOutcome> {
   const apiKey = process.env.GEMINI_API_KEY;
   const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
+  // Per-day rate limit. Once exceeded, always fall back to the offline bank.
+  const rate = getRateStatus(identity);
+  if (!rate.allowed) {
+    return {
+      result: mockGenerate(input),
+      source: "mock",
+      warning: rateLimitMessage(rate),
+      rate,
+    };
+  }
+
   if (!apiKey) {
-    return { result: mockGenerate(input), source: "mock" };
+    return { result: mockGenerate(input), source: "mock", rate };
   }
 
   try {
@@ -132,13 +153,15 @@ export async function generateQuestionPaper(input: Input): Promise<GenerationOut
     const result = await model.generateContent(buildUserPrompt(input));
     const text = result.response.text();
     const parsed = JSON.parse(text) as GeneratedResult;
-    return { result: parsed, source: "gemini" };
+    recordRateHit(identity);
+    return { result: parsed, source: "gemini", rate: getRateStatus(identity) };
   } catch (e) {
     console.warn("[llm] Gemini call failed, falling back to mock:", (e as Error).message);
     return {
       result: mockGenerate(input),
       source: "mock",
       warning: shortError(e),
+      rate,
     };
   }
 }
@@ -170,16 +193,30 @@ type OneInput = {
   avoidTexts: string[];
 };
 
-export async function regenerateQuestion(input: OneInput): Promise<{
+export async function regenerateQuestion(
+  input: OneInput,
+  identity: string = "global"
+): Promise<{
   question: GeneratedResult["sections"][number]["questions"][number];
   source: "gemini" | "mock";
   warning?: string;
+  rate?: RateStatus;
 }> {
   const apiKey = process.env.GEMINI_API_KEY;
   const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
+  const rate = getRateStatus(identity);
+  if (!rate.allowed) {
+    return {
+      question: mockOneQuestion(input),
+      source: "mock",
+      warning: rateLimitMessage(rate),
+      rate,
+    };
+  }
+
   if (!apiKey) {
-    return { question: mockOneQuestion(input), source: "mock" };
+    return { question: mockOneQuestion(input), source: "mock", rate };
   }
 
   const sys = `${SYSTEM_PROMPT}
@@ -215,6 +252,7 @@ Make it materially different from the AVOID list, but still fitting the section.
     const r = await model.generateContent(user);
     const text = r.response.text();
     const parsed = JSON.parse(text) as GeneratedResult["sections"][number]["questions"][number];
+    recordRateHit(identity);
     return {
       question: {
         ...parsed,
@@ -223,6 +261,7 @@ Make it materially different from the AVOID list, but still fitting the section.
         difficulty: input.question.difficulty,
       },
       source: "gemini",
+      rate: getRateStatus(identity),
     };
   } catch (e) {
     console.warn("[llm] regenerateQuestion failed:", (e as Error).message);
@@ -230,6 +269,7 @@ Make it materially different from the AVOID list, but still fitting the section.
       question: mockOneQuestion(input),
       source: "mock",
       warning: shortError(e),
+      rate,
     };
   }
 }

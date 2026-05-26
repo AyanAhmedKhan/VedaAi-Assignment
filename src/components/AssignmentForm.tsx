@@ -11,6 +11,7 @@ import {
   SUBJECT_PRESETS,
   GRADE_PRESETS,
 } from "./PresetCombobox";
+import { AIQuotaBadge } from "./AIQuotaBadge";
 
 const A = "/figma/screen1";
 
@@ -153,6 +154,7 @@ export function AssignmentForm() {
             </p>
           </div>
         </div>
+        <AIQuotaBadge className="ml-auto" />
       </div>
 
       <StepProgress />
